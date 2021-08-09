@@ -29,6 +29,7 @@ let
     ps.altair
     ps.matplotlib
     ps.tqdm
+    ps.ipywidgets
   ]);
 
 in mkShell {
