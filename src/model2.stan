@@ -14,7 +14,7 @@ functions {
 
     vector temp_hazard(vector t, real t_crit, real beta, real eta) {
 	vector[num_elements(t)] res = log(1 + exp((t - t_crit) / eta));
-	return beta * cumulative_sum(res);
+	return beta * res;
     }
 
     vector maturation_rate(vector t, real alpha, real beta) {
@@ -52,6 +52,9 @@ data {
 
     /* regularization for the temperature modulation function */
     real<lower=0> temp_reg;
+
+    /* egg maturation regularization */
+    real<lower=0> mat_reg;
 }
 
 transformed data {
@@ -109,12 +112,9 @@ transformed parameters {
         vector[365] hazard = rep_vector(100, 365); 
     
         for (i in 1:365) {
-            for (j in i:365) {
-                if (dev[j] - dev[i] >= 1.0) {
-		    hazard[i] = hzd[j] - hzd[i];
-		    break;
-		}
-            }
+	    vector[365 - i + 1] mat = (1 - dev[i:365] + dev[i]) / mat_reg;
+
+	    hazard[i] = dot_product(hzd[i:365], inv_logit(mat));
         }
 
 	survival[y] = base_survival + log_sum_exp(log(egg_prob) - hazard); 
