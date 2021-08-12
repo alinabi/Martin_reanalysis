@@ -20,6 +20,24 @@ let
     ];
   };
 
+  pystan = python38.pkgs.buildPythonPackage rec {
+    pname = "pystan";
+    version = "2.19.1.1";
+
+    src = python38.pkgs.fetchPypi {
+      inherit pname version;
+      sha256 = "0f5hbv9dhsx3b5yn5kpq5pwi1kxzmg4mdbrndyz2p8hdpj6sv2zs";
+    };
+
+    doCheck = false;
+
+    propagatedBuildInputs = with python38.pkgs; [
+      numpy
+      cython  
+      pandas
+    ];
+  };
+
 
   pythonEnv = python38.withPackages (ps: [
     ps.cython
@@ -35,7 +53,7 @@ let
 in mkShell {
   buildInputs = [
     pythonEnv
-    cmdstanpy
+    pystan
   ];
 }
 
