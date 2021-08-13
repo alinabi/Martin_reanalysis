@@ -54,6 +54,8 @@ in mkShell {
   buildInputs = [
     pythonEnv
     pystan
+    pandoc
+    texlive.combined.scheme-full
   ];
 }
 
