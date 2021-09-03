@@ -24,6 +24,7 @@ data {
     int<lower=1> D; // number of days in incubation period
     int<lower=1> T; // number of temp observations
     int<lower=1> S; // number of survival observations
+    int<lower=1> I; // incubation days
 
     /* redd observations */
     int<lower=1, upper=Y> redd_year[R];
@@ -59,35 +60,32 @@ transformed data {
 
 parameters {
     /* parameters for local temperature profile */
-    real<offset=temp_off, multiplier=temp_mult> mu_temp[Y];
-    real<lower=0> sigma_temp[Y];
+    vector[Y] mu_temp;
+    vector<lower=0>[Y] sigma_temp;
 
     /* temperature profile */
     vector[D] surv_temp[Y];
-
-    /* temperature variability */
 
     /* hazard model */
     real temp_crit;
     real<lower=0> beta_hazard;
 
     /* annual_egg_distribution */
-    real<offset=0.5, multiplier=0.5> mu_egg;
+    real mu_egg;
     real<lower=0> sigma_egg;
 
     /* survival regression model */
     real<upper=0> base_survival;
 
     /* egg maturation model */
-    real<lower=0> beta_egg;
-    real alpha_egg;
+    //real<lower=0> beta_egg;
+    //real alpha_egg;
 
 }
 
 transformed parameters {
     /* annual temperature and egg profiles */	
-    //vector[365] mu_temp ;
-    vector[D] egg_prob;
+    simplex[D] egg_prob;
 
     /* survival regression */
     vector<upper=0>[Y] survival; 
@@ -96,22 +94,22 @@ transformed parameters {
 
     for (y in 1:Y) {
         vector[D] hzd = temp_hazard(surv_temp[y], temp_crit, beta_hazard, temp_reg);
-        vector[D] dev = maturation_rate(surv_temp[y], alpha_egg, beta_egg);
         vector[D] hazard; 
     
         for (i in 1:D) {
-	    vector[D - i + 1] mat = (1 - dev[i:D] + dev[i]) / mat_reg;
-
-	    hazard[i] = dot_product(hzd[i:D], inv_logit(mat));
+	    int n = min(i + I - 1, D);
+	    hazard[i] = sum(hzd[i:n]);
         }
 
 	survival[y] = base_survival + log_sum_exp(log(egg_prob) - hazard); 
     }
-
 }
 
 
 model {
+    temp_crit ~ normal(12.0, 1.5);
+    mu_temp ~ normal(temp_off, temp_mult);
+
     for (y in 1:Y) {
 	int start = redd_offset[y];
 	int stop = redd_offset[y] + redd_length[y] - 1;
